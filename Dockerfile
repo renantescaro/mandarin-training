@@ -19,6 +19,6 @@ ENV FLASK_APP=main
 ENV FLASK_DEBUG=0
 ENV PYTHONUNBUFFERED=1
 
-EXPOSE 5001
+EXPOSE 5004
 
-CMD ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5001", "main:app"]
+CMD ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5004", "main:app"]

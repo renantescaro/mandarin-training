@@ -15,10 +15,10 @@ RUN uv sync --frozen --no-cache
 COPY . .
 
 ENV PYTHONPATH=/app
-ENV FLASK_APP=main
+ENV FLASK_APP=app
 ENV FLASK_DEBUG=0
 ENV PYTHONUNBUFFERED=1
 
 EXPOSE 5004
 
-CMD ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5004", "main:app"]
+CMD ["uv", "run", "gunicorn", "--bind", "0.0.0.0:5004", "app:app"]

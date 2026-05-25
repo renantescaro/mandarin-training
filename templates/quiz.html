@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz de Mandarim</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased flex flex-col justify-between">
+    <header class="bg-white border-b border-slate-200 py-4 shadow-sm">
+        <div class="max-w-xl mx-auto px-4 flex items-center justify-between">
+            <h1 class="text-xl font-bold text-slate-900">Treino Auditivo: Quiz</h1>
+            <span id="score" class="text-sm font-semibold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">Acertos: 0/0</span>
+        </div>
+    </header>
+
+    <main class="max-w-md w-full mx-auto px-4 py-8 flex-grow flex flex-col justify-center">
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm text-center">
+            <div class="mb-6">
+                <span class="text-xs font-semibold text-indigo-600 uppercase tracking-wider">Ouça com atenção</span>
+                <h2 class="text-lg text-slate-500 mt-1">Qual caractere você ouviu?</h2>
+            </div>
+
+            <div class="flex justify-center mb-8">
+                <button onclick="playCurrentAudio()" class="w-20 h-20 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-150 group">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-10 h-10 group-hover:scale-110 transition-transform">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+                    </svg>
+                </button>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 gap-3 mb-6"></div>
+
+            <div id="feedback" class="h-12 flex items-center justify-center font-semibold text-sm rounded-xl hidden transition-all duration-200"></div>
+        </div>
+    </main>
+
+    <script>
+        const dataset = {{ caracteres | tojson }};
+        let currentIndex = 0;
+        let currentAudio = null;
+        let correctAnswers = 0;
+        let totalQuestions = 0;
+        let canAnswer = false;
+
+        function shuffle(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function loadQuestion() {
+            canAnswer = true;
+            const feedback = document.getElementById('feedback');
+            feedback.classList.add('hidden');
+            feedback.className = 'h-12 flex items-center justify-center font-semibold text-sm rounded-xl hidden transition-all duration-200';
+
+            if (currentAudio) currentAudio.pause();
+            currentAudio = new Audio('/static/audio/' + dataset[currentIndex].audio);
+
+            const currentItem = dataset[currentIndex];
+            let options = [currentItem];
+
+            while (options.length < 3 && options.length < dataset.length) {
+                const randomItem = dataset[Math.floor(Math.random() * dataset.length)];
+                if (!options.some(opt => opt.hanji === randomItem.hanji)) {
+                    options.push(randomItem);
+                }
+            }
+            shuffle(options);
+
+            const container = document.getElementById('options-container');
+            container.innerHTML = '';
+
+            options.forEach(opt => {
+                const button = document.createElement('button');
+                button.className = 'option-btn w-full bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left px-4 py-3 rounded-xl font-medium flex items-center justify-between transition-all duration-150 active:scale-[0.99]';
+                button.innerHTML = `
+                    <span class="text-xl font-bold text-slate-900">${opt.hanji} <span class="text-sm font-normal text-indigo-600 ml-2">(${opt.pinyin})</span></span>
+                    <span class="text-sm text-slate-500">${opt.traducao}</span>
+                `;
+                button.onclick = () => checkAnswer(opt.hanji, button);
+                container.appendChild(button);
+            });
+
+            playCurrentAudio();
+        }
+
+        function playCurrentAudio() {
+            if (currentAudio) {
+                currentAudio.currentTime = 0;
+                currentAudio.play().catch(e => console.log("Aguardando interação do usuário"));
+            }
+        }
+
+        function checkAnswer(selectedHanji, clickedButton) {
+            if (!canAnswer) return;
+            canAnswer = false;
+
+            const currentItem = dataset[currentIndex];
+            const feedback = document.getElementById('feedback');
+            const buttons = document.querySelectorAll('.option-btn');
+            
+            totalQuestions++;
+
+            buttons.forEach(btn => btn.disabled = true);
+
+            if (selectedHanji === currentItem.hanji) {
+                correctAnswers++;
+                clickedButton.classList.replace('bg-slate-50', 'bg-emerald-50');
+                clickedButton.classList.replace('border-slate-200', 'border-emerald-500');
+                feedback.textContent = "Correto! 🎉";
+                feedback.classList.add('bg-emerald-50', 'text-emerald-700', 'border', 'border-emerald-200');
+            } else {
+                clickedButton.classList.replace('bg-slate-50', 'bg-rose-50');
+                clickedButton.classList.replace('border-slate-200', 'border-rose-500');
+                
+                buttons.forEach(btn => {
+                    if (btn.innerHTML.includes(currentItem.hanji)) {
+                        btn.classList.replace('bg-slate-50', 'bg-emerald-50');
+                        btn.classList.replace('border-slate-200', 'border-emerald-500');
+                    }
+                });
+
+                feedback.textContent = `Incorreto. Resposta: ${currentItem.hanji} (${currentItem.pinyin})`;
+                feedback.classList.add('bg-rose-50', 'text-rose-700', 'border', 'border-rose-200');
+            }
+
+            feedback.classList.remove('hidden');
+            document.getElementById('score').textContent = `Acertos: ${correctAnswers}/${totalQuestions}`;
+
+            setTimeout(() => {
+                currentIndex = (currentIndex + 1) % dataset.length;
+                if (currentIndex === 0) shuffle(dataset);
+                loadQuestion();
+            }, 2000);
+        }
+
+        shuffle(dataset);
+        window.onload = loadQuestion;
+    </script>
+</body>
+</html>
